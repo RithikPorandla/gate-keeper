@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GateKeeper — AI Risk Decisioning Platform</title>
+  <meta name="description" content="AI-assisted business onboarding and risk decisioning. Deterministic rules + LLM judgment + human oversight. Built for fintechs and B2B SaaS.">
+  <meta property="og:title" content="GateKeeper — AI Risk Decisioning Platform">
+  <meta property="og:description" content="Deterministic rules + Claude LLM + human review. The architecture behind how fintechs decide who gets access.">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #060a12;
+      --bg-2:        #0b1120;
+      --bg-3:        #111827;
+      --surface:     #141c2e;
+      --surface-2:   #1a2440;
+      --border:      rgba(255,255,255,.07);
+      --border-lit:  rgba(99,102,241,.3);
+      --indigo:      #6366f1;
+      --indigo-2:    #818cf8;
+      --violet:      #8b5cf6;
+      --green:       #22c55e;
+      --amber:       #f59e0b;
+      --red:         #f43f5e;
+      --text:        #f1f5f9;
+      --text-2:      #94a3b8;
+      --text-3:      #64748b;
+      --mono:        'JetBrains Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── Nav ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 2rem;
+      background: rgba(6,10,18,.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-brand {
+      display: flex; align-items: center; gap: .6rem;
+      font-weight: 700; font-size: 1.05rem; color: var(--text);
+      text-decoration: none;
+    }
+    .nav-brand svg { width: 26px; height: 26px; }
+    .nav-links { display: flex; align-items: center; gap: 1.5rem; }
+    .nav-links a {
+      color: var(--text-2); font-size: .875rem; text-decoration: none;
+      transition: color .2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta {
+      background: var(--indigo); color: #fff !important;
+      padding: .45rem 1rem; border-radius: 6px;
+      font-weight: 600; font-size: .8rem !important;
+      transition: opacity .2s !important;
+    }
+    .nav-cta:hover { opacity: .85; }
+
+    /* ── Hero ── */
+    .hero {
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      text-align: center;
+      padding: 7rem 1.5rem 5rem;
+      position: relative;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99,102,241,.18), transparent),
+        radial-gradient(ellipse 50% 40% at 80% 110%, rgba(139,92,246,.10), transparent);
+    }
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 80%);
+      pointer-events: none;
+    }
+    .hero-inner { position: relative; max-width: 760px; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: .5rem;
+      background: rgba(99,102,241,.12); border: 1px solid rgba(99,102,241,.25);
+      color: var(--indigo-2); font-size: .78rem; font-weight: 600;
+      padding: .35rem .85rem; border-radius: 100px;
+      letter-spacing: .04em; text-transform: uppercase;
+      margin-bottom: 1.75rem;
+    }
+    .hero-badge-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--indigo); animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .5; transform: scale(.8); }
+    }
+    h1 {
+      font-size: clamp(2.4rem, 6vw, 4rem);
+      font-weight: 900;
+      line-height: 1.1;
+      letter-spacing: -.03em;
+      margin-bottom: 1.5rem;
+    }
+    .grad-text {
+      background: linear-gradient(135deg, var(--indigo-2) 0%, var(--violet) 50%, #a78bfa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      font-size: clamp(1rem, 2.5vw, 1.2rem);
+      color: var(--text-2); max-width: 540px; margin: 0 auto 2.5rem;
+      font-weight: 400;
+    }
+    .hero-ctas {
+      display: flex; align-items: center; justify-content: center;
+      gap: 1rem; flex-wrap: wrap;
+    }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: .5rem;
+      background: var(--indigo); color: #fff;
+      padding: .7rem 1.5rem; border-radius: 8px;
+      font-weight: 600; font-size: .95rem; text-decoration: none;
+      transition: opacity .2s, transform .15s;
+    }
+    .btn-primary:hover { opacity: .88; transform: translateY(-1px); }
+    .btn-outline {
+      display: inline-flex; align-items: center; gap: .5rem;
+      border: 1px solid var(--border-lit); color: var(--indigo-2);
+      padding: .7rem 1.5rem; border-radius: 8px;
+      font-weight: 600; font-size: .95rem; text-decoration: none;
+      transition: background .2s, transform .15s;
+    }
+    .btn-outline:hover { background: rgba(99,102,241,.08); transform: translateY(-1px); }
+
+    /* ── Section layout ── */
+    section { padding: 5rem 1.5rem; max-width: 1100px; margin: 0 auto; }
+    .section-label {
+      font-size: .75rem; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--indigo-2);
+      margin-bottom: .75rem;
+    }
+    .section-title {
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      font-weight: 800; letter-spacing: -.02em;
+      margin-bottom: 1rem;
+    }
+    .section-sub {
+      color: var(--text-2); font-size: 1.05rem; max-width: 560px;
+      margin-bottom: 3rem;
+    }
+    .divider { border: none; border-top: 1px solid var(--border); max-width: 1100px; margin: 0 auto; }
+
+    /* ── Pipeline ── */
+    .pipeline-section { background: var(--bg-2); padding: 5rem 1.5rem; }
+    .pipeline-section > .inner { max-width: 1100px; margin: 0 auto; }
+    .pipeline-flow {
+      display: grid;
+      grid-template-columns: 1fr 40px 1fr 40px 1fr 40px 1fr;
+      align-items: center;
+      gap: .5rem;
+      margin-top: 2.5rem;
+      overflow-x: auto;
+    }
+    .pipe-stage {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem 1.25rem;
+      text-align: center;
+      position: relative;
+      transition: border-color .3s, transform .2s;
+      min-width: 160px;
+    }
+    .pipe-stage:hover { border-color: var(--border-lit); transform: translateY(-3px); }
+    .pipe-stage-icon {
+      width: 44px; height: 44px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto .85rem;
+    }
+    .pi-blue  { background: rgba(59,130,246,.15); color: #60a5fa; }
+    .pi-indigo{ background: rgba(99,102,241,.15); color: var(--indigo-2); }
+    .pi-violet{ background: rgba(139,92,246,.15); color: #a78bfa; }
+    .pi-green { background: rgba(34,197,94,.15);  color: var(--green); }
+    .pipe-stage-icon svg { width: 22px; height: 22px; }
+    .pipe-stage-name { font-weight: 700; font-size: .95rem; margin-bottom: .35rem; }
+    .pipe-stage-desc { font-size: .78rem; color: var(--text-2); line-height: 1.4; }
+    .pipe-arrow {
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-3);
+    }
+    .pipe-arrow svg { width: 28px; height: 20px; }
+    .pipe-outcomes {
+      display: flex; flex-direction: column; gap: .4rem; margin-top: .85rem;
+    }
+    .outcome-item {
+      display: flex; align-items: center; gap: .5rem;
+      font-size: .75rem; font-weight: 600; padding: .3rem .6rem;
+      border-radius: 6px;
+    }
+    .oi-green { background: rgba(34,197,94,.12); color: var(--green); }
+    .oi-red   { background: rgba(244,63,94,.12);  color: var(--red); }
+    .oi-amber { background: rgba(245,158,11,.12); color: var(--amber); }
+    .outcome-item svg { width: 10px; height: 10px; flex-shrink: 0; }
+
+    /* Flow animation */
+    .flow-track {
+      height: 2px; background: linear-gradient(90deg, var(--indigo), var(--violet));
+      position: relative; overflow: visible; margin: 2.5rem 0 .5rem;
+      border-radius: 2px; opacity: .35;
+      max-width: 100%;
+    }
+    .flow-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--indigo-2);
+      box-shadow: 0 0 8px var(--indigo);
+      position: absolute; top: 50%; transform: translateY(-50%);
+      animation: flowRight 4s linear infinite;
+    }
+    .flow-dot:nth-child(2) { animation-delay: 1.3s; }
+    .flow-dot:nth-child(3) { animation-delay: 2.6s; }
+    @keyframes flowRight {
+      0%   { left: -10px; opacity: 0; }
+      5%   { opacity: 1; }
+      95%  { opacity: 1; }
+      100% { left: calc(100% + 10px); opacity: 0; }
+    }
+
+    /* ── Features ── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.25rem;
+      margin-top: 2.5rem;
+    }
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      transition: border-color .3s, transform .2s;
+    }
+    .feature-card:hover { border-color: var(--border-lit); transform: translateY(-2px); }
+    .feature-icon {
+      width: 40px; height: 40px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 1rem;
+    }
+    .feature-icon svg { width: 20px; height: 20px; }
+    .feature-title { font-weight: 700; font-size: 1rem; margin-bottom: .4rem; }
+    .feature-desc { font-size: .85rem; color: var(--text-2); line-height: 1.55; }
+
+    /* ── Use cases ── */
+    .usecases-section { background: var(--bg-2); padding: 5rem 1.5rem; }
+    .usecases-section > .inner { max-width: 1100px; margin: 0 auto; }
+    .usecases-table {
+      width: 100%; border-collapse: collapse; margin-top: 2.5rem;
+      font-size: .875rem;
+    }
+    .usecases-table th {
+      text-align: left; padding: .75rem 1rem;
+      color: var(--text-2); font-weight: 600; font-size: .75rem;
+      text-transform: uppercase; letter-spacing: .07em;
+      border-bottom: 1px solid var(--border);
+    }
+    .usecases-table td {
+      padding: 1rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .usecases-table tr:last-child td { border-bottom: none; }
+    .usecases-table tr:hover td { background: rgba(99,102,241,.04); }
+    .uc-who { font-weight: 600; color: var(--text); white-space: nowrap; }
+    .uc-companies { color: var(--text-3); font-size: .78rem; margin-top: .2rem; font-style: italic; }
+    .uc-what { color: var(--text-2); }
+    .uc-why  { color: var(--text-2); }
+    .uc-badge {
+      display: inline-block; font-size: .7rem; font-weight: 600;
+      padding: .2rem .55rem; border-radius: 100px;
+      background: rgba(99,102,241,.12); color: var(--indigo-2);
+      border: 1px solid rgba(99,102,241,.2);
+      white-space: nowrap;
+    }
+
+    /* ── Observability callout ── */
+    .obs-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1rem; margin-top: 2.5rem;
+    }
+    .obs-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 1.25rem;
+    }
+    .obs-num {
+      font-size: 2rem; font-weight: 800; letter-spacing: -.03em;
+      background: linear-gradient(135deg, var(--indigo-2), var(--violet));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .obs-label { font-size: .8rem; color: var(--text-2); margin-top: .2rem; }
+
+    /* ── Tech stack ── */
+    .stack-grid {
+      display: flex; flex-wrap: wrap; gap: .75rem;
+      margin-top: 2rem;
+    }
+    .stack-badge {
+      display: inline-flex; align-items: center; gap: .5rem;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: .5rem .9rem;
+      font-size: .82rem; font-weight: 600; color: var(--text-2);
+      transition: border-color .2s, color .2s;
+    }
+    .stack-badge:hover { border-color: var(--border-lit); color: var(--text); }
+    .stack-badge .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+    }
+
+    /* ── Quick start ── */
+    .quickstart-section { background: var(--bg-2); padding: 5rem 1.5rem; }
+    .quickstart-section > .inner { max-width: 1100px; margin: 0 auto; }
+    .code-block {
+      background: #080d19;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-top: 2rem;
+    }
+    .code-bar {
+      background: var(--surface); padding: .7rem 1rem;
+      display: flex; align-items: center; gap: .5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .code-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .code-bar-label {
+      margin-left: .25rem; font-size: .75rem; color: var(--text-3);
+      font-family: var(--mono);
+    }
+    .code-body { padding: 1.5rem 1.5rem; overflow-x: auto; }
+    .code-body pre {
+      font-family: var(--mono);
+      font-size: .875rem; line-height: 1.7;
+      color: #e2e8f0;
+    }
+    .c-comment { color: #4b5563; }
+    .c-cmd     { color: var(--indigo-2); }
+    .c-str     { color: #86efac; }
+    .c-url     { color: #67e8f9; }
+
+    /* ── Design decisions ── */
+    .decisions-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem; margin-top: 2.5rem;
+    }
+    .decision-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 1.25rem;
+      border-left: 3px solid var(--indigo);
+    }
+    .decision-q { font-weight: 700; font-size: .875rem; margin-bottom: .4rem; color: var(--text); }
+    .decision-a { font-size: .82rem; color: var(--text-2); line-height: 1.55; }
+
+    /* ── Architecture thesis ── */
+    .thesis-box {
+      background: linear-gradient(135deg, rgba(99,102,241,.1) 0%, rgba(139,92,246,.06) 100%);
+      border: 1px solid var(--border-lit);
+      border-radius: 16px;
+      padding: 2.5rem;
+      margin-top: 3rem;
+      text-align: center;
+    }
+    .thesis-quote {
+      font-size: clamp(1.05rem, 2.5vw, 1.3rem);
+      font-weight: 500; color: var(--text); line-height: 1.65;
+      font-style: italic;
+    }
+    .thesis-quote strong { color: var(--indigo-2); font-style: normal; }
+    .thesis-attr {
+      margin-top: 1rem; font-size: .8rem; color: var(--text-3); font-weight: 600;
+      letter-spacing: .06em; text-transform: uppercase;
+    }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 3rem 1.5rem;
+      text-align: center;
+    }
+    .footer-inner { max-width: 600px; margin: 0 auto; }
+    .footer-logo {
+      display: inline-flex; align-items: center; gap: .6rem;
+      font-weight: 700; font-size: 1rem; color: var(--text);
+      text-decoration: none; margin-bottom: 1rem;
+    }
+    .footer-logo svg { width: 22px; height: 22px; }
+    .footer-desc { font-size: .875rem; color: var(--text-2); margin-bottom: 1.5rem; }
+    .footer-links { display: flex; align-items: center; justify-content: center; gap: 1.5rem; }
+    .footer-links a {
+      font-size: .8rem; color: var(--text-3); text-decoration: none;
+      transition: color .2s;
+    }
+    .footer-links a:hover { color: var(--indigo-2); }
+    .footer-copy { margin-top: 2rem; font-size: .75rem; color: var(--text-3); }
+
+    /* ── Scroll reveal ── */
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity .6s, transform .6s; }
+    .reveal.visible { opacity: 1; transform: none; }
+
+    /* ── Responsive ── */
+    @media (max-width: 680px) {
+      nav { padding: 1rem; }
+      .pipeline-flow { grid-template-columns: 1fr; }
+      .pipe-arrow { transform: rotate(90deg); }
+      .usecases-table { font-size: .8rem; }
+      .usecases-table td { padding: .75rem .6rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Nav ── -->
+<nav>
+  <a href="#" class="nav-brand">
+    <svg viewBox="0 0 24 24" fill="none">
+      <path d="M12 2L4 6v6c0 5.25 3.5 10.15 8 11.5C16.5 22.15 20 17.25 20 12V6L12 2z"
+        fill="url(#ng)" stroke="url(#ng)" stroke-width=".5"/>
+      <defs>
+        <linearGradient id="ng" x1="4" y1="2" x2="20" y2="23.5" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#818cf8"/>
+          <stop offset="100%" stop-color="#8b5cf6"/>
+        </linearGradient>
+      </defs>
+    </svg>
+    GateKeeper
+  </a>
+  <div class="nav-links">
+    <a href="#pipeline">How it works</a>
+    <a href="#usecases">Use cases</a>
+    <a href="#quickstart">Quick start</a>
+    <a href="https://github.com/RithikPorandla/gate-keeper" class="nav-cta" target="_blank" rel="noopener">
+      View on GitHub →
+    </a>
+  </div>
+</nav>
+
+<!-- ── Hero ── -->
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge">
+      <div class="hero-badge-dot"></div>
+      AI-assisted decisioning · Open source
+    </div>
+    <h1>
+      Risk decisioning for<br>
+      <span class="grad-text">business onboarding</span>
+    </h1>
+    <p class="hero-sub">
+      Deterministic rules catch hard signals. Claude LLM adds judgment.
+      Humans review edge cases. Every decision is explainable, auditable, and production-grade.
+    </p>
+    <div class="hero-ctas">
+      <a href="https://github.com/RithikPorandla/gate-keeper" class="btn-primary" target="_blank" rel="noopener">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+          <path fill-rule="evenodd" d="M10 0C4.477 0 0 4.484 0 10.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0110 4.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.203 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0020 10.017C20 4.484 15.522 0 10 0z" clip-rule="evenodd"/>
+        </svg>
+        View on GitHub
+      </a>
+      <a href="#pipeline" class="btn-outline">
+        See how it works ↓
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ── Pipeline ── -->
+<div class="pipeline-section" id="pipeline">
+  <div class="inner">
+    <div class="reveal">
+      <div class="section-label">Decision pipeline</div>
+      <h2 class="section-title">From application to decision in seconds</h2>
+      <p class="section-sub">
+        Every business that applies runs through an automated 4-stage pipeline.
+        No human is consulted unless the system genuinely can't decide.
+      </p>
+    </div>
+
+    <div class="flow-track reveal">
+      <div class="flow-dot"></div>
+      <div class="flow-dot"></div>
+      <div class="flow-dot"></div>
+    </div>
+
+    <div class="pipeline-flow reveal">
+
+      <div class="pipe-stage">
+        <div class="pipe-stage-icon pi-blue">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <path d="M8 1L2 4v4c0 3 2.5 5.8 6 6.8C11.5 13.8 14 11 14 8V4L8 1z"/>
+          </svg>
+        </div>
+        <div class="pipe-stage-name">Submit</div>
+        <div class="pipe-stage-desc">Business POSTs application. Validated with Pydantic, persisted as <em>pending</em>, Celery task enqueued.</div>
+      </div>
+
+      <div class="pipe-arrow">
+        <svg viewBox="0 0 32 12" fill="none">
+          <path d="M0 6h28M22 2l6 4-6 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+
+      <div class="pipe-stage">
+        <div class="pipe-stage-icon pi-indigo">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <rect x="2" y="2" width="12" height="3" rx="1"/>
+            <rect x="2" y="7" width="12" height="3" rx="1"/>
+            <rect x="2" y="12" width="7" height="2" rx="1"/>
+          </svg>
+        </div>
+        <div class="pipe-stage-name">Rule engine</div>
+        <div class="pipe-stage-desc">5 deterministic checks: KYB completeness · Sanctions watchlist · Country risk · Credit threshold · Velocity</div>
+      </div>
+
+      <div class="pipe-arrow">
+        <svg viewBox="0 0 32 12" fill="none">
+          <path d="M0 6h28M22 2l6 4-6 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+
+      <div class="pipe-stage">
+        <div class="pipe-stage-icon pi-violet">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <circle cx="8" cy="6" r="3"/>
+            <path d="M2 14c0-3.3 2.7-5 6-5s6 1.7 6 5"/>
+          </svg>
+        </div>
+        <div class="pipe-stage-name">LLM analyst</div>
+        <div class="pipe-stage-desc">Claude reads the full application and rule results, returns a 0–100 risk score, recommendation, and written rationale.</div>
+      </div>
+
+      <div class="pipe-arrow">
+        <svg viewBox="0 0 32 12" fill="none">
+          <path d="M0 6h28M22 2l6 4-6 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+
+      <div class="pipe-stage">
+        <div class="pipe-stage-icon pi-green">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 4L6 11 3 8"/>
+          </svg>
+        </div>
+        <div class="pipe-stage-name">Decision</div>
+        <div class="pipe-outcomes">
+          <div class="outcome-item oi-green">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 6l3 3 5-5"/></svg>
+            Auto-approved
+          </div>
+          <div class="outcome-item oi-red">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l6 6M9 3l-6 6"/></svg>
+            Auto-declined
+          </div>
+          <div class="outcome-item oi-amber">
+            <svg viewBox="0 0 12 12" fill="currentColor"><path d="M6 1a5 5 0 100 10A5 5 0 006 1zm-.5 3a.5.5 0 011 0v2.5a.5.5 0 01-1 0V4zm.5 5.5a.75.75 0 110-1.5.75.75 0 010 1.5z"/></svg>
+            Human review
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /pipeline-flow -->
+
+    <div class="thesis-box reveal">
+      <p class="thesis-quote">
+        "The LLM augments and explains decisions, but <strong>never has unilateral authority over money movement</strong>.
+        Deterministic rules hold veto power, and humans review on disagreement."
+      </p>
+      <div class="thesis-attr">Core architectural thesis</div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ── Features ── -->
+<section id="features">
+  <div class="reveal">
+    <div class="section-label">Engineering decisions</div>
+    <h2 class="section-title">Built the way financial infra should be</h2>
+    <p class="section-sub">
+      Every architectural choice reflects how real fintechs think about risk, compliance, and scale.
+    </p>
+  </div>
+  <div class="features-grid reveal">
+
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(99,102,241,.15);color:var(--indigo-2)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <rect x="2" y="2" width="12" height="3" rx="1"/>
+          <rect x="2" y="7" width="12" height="3" rx="1"/>
+          <rect x="2" y="12" width="7" height="2" rx="1"/>
+        </svg>
+      </div>
+      <div class="feature-title">Deterministic rules first</div>
+      <div class="feature-desc">Hard signals — sanctions hits, banned countries, repeated EINs — block before the LLM is ever consulted. Rules are config-driven in <code style="font-family:var(--mono);font-size:.8em;background:rgba(255,255,255,.06);padding:.1rem .3rem;border-radius:3px;">rules.yaml</code>.</div>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(139,92,246,.15);color:#a78bfa">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <circle cx="8" cy="6" r="3"/><path d="M2 14c0-3.3 2.7-5 6-5s6 1.7 6 5"/>
+        </svg>
+      </div>
+      <div class="feature-title">LLM adds judgment</div>
+      <div class="feature-desc">Claude reads context the rules can't see. Returns structured JSON: risk score, recommendation, top concerns, and a rationale memo. Output is Pydantic-validated.</div>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(244,63,94,.12);color:#fb7185">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M8 1L2 4v4c0 3 2.5 5.8 6 6.8C11.5 13.8 14 11 14 8V4L8 1z"/>
+          <path d="M6 8l1.5 1.5L10 6"/>
+        </svg>
+      </div>
+      <div class="feature-title">Fail-safe by design</div>
+      <div class="feature-desc">LLM timeout or malformed output? The system defaults to <em>needs_review</em> — never auto-approve on failure. Errors escalate to humans, not to approvals.</div>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(245,158,11,.12);color:var(--amber)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M3 4h10v7a2 2 0 01-2 2H5a2 2 0 01-2-2V4z"/><path d="M1 4h14"/>
+        </svg>
+      </div>
+      <div class="feature-title">Human review queue</div>
+      <div class="feature-desc">Ambiguous cases land in a full ops console with the AI rationale, risk score, and concern chips visible — so reviewers make informed decisions fast.</div>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(34,197,94,.12);color:var(--green)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <circle cx="8" cy="8" r="6"/><path d="M8 5v3l1.5 1.5"/>
+        </svg>
+      </div>
+      <div class="feature-title">Full observability</div>
+      <div class="feature-desc">Prometheus metrics, OpenTelemetry traces, and a pre-built Grafana dashboard. Queue depth, decision latency, auto-decision rate — all instrumented.</div>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(59,130,246,.12);color:#60a5fa">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <rect x="2" y="3" width="5" height="10" rx="1"/>
+          <rect x="9" y="3" width="5" height="6" rx="1"/>
+          <rect x="9" y="11" width="5" height="2" rx="1"/>
+        </svg>
+      </div>
+      <div class="feature-title">Production-ready scale</div>
+      <div class="feature-desc">Stateless API + stateless workers. Scale with <code style="font-family:var(--mono);font-size:.8em;background:rgba(255,255,255,.06);padding:.1rem .3rem;border-radius:3px;">--scale worker=N</code>. Redis-backed idempotency, connection pooling, partition-ready audit log.</div>
+    </div>
+
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ── Use cases ── -->
+<div class="usecases-section" id="usecases">
+  <div class="inner">
+    <div class="reveal">
+      <div class="section-label">Use cases</div>
+      <h2 class="section-title">Who builds systems like this</h2>
+      <p class="section-sub">
+        Any company that decides who gets financial access — and has to explain that decision later — needs this architecture.
+      </p>
+    </div>
+    <table class="usecases-table reveal">
+      <thead>
+        <tr>
+          <th>Company type</th>
+          <th>What they decide</th>
+          <th>Why risk decisioning matters</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <div class="uc-who">Corporate card issuers</div>
+            <div class="uc-companies">Brex, Ramp, Divvy</div>
+          </td>
+          <td class="uc-what">Who gets a business card and at what credit limit</td>
+          <td class="uc-why">Fraud and credit losses come directly out of their own balance sheet — high-stakes, real-time decisions</td>
+        </tr>
+        <tr>
+          <td>
+            <div class="uc-who">Business banking</div>
+            <div class="uc-companies">Mercury, Relay, Arc</div>
+          </td>
+          <td class="uc-what">Who can open a deposit account and accept payments</td>
+          <td class="uc-why">Regulated by FinCEN — KYB and AML checks are legally required at onboarding, not optional</td>
+        </tr>
+        <tr>
+          <td>
+            <div class="uc-who">BNPL / SMB lending</div>
+            <div class="uc-companies">Affirm, Klarna, Capchase</div>
+          </td>
+          <td class="uc-what">Real-time credit approval for B2B purchases</td>
+          <td class="uc-why">Decisions happen in seconds at checkout — manual underwriting doesn't scale; explainability matters for audits</td>
+        </tr>
+        <tr>
+          <td>
+            <div class="uc-who">B2B marketplace / seller onboarding</div>
+            <div class="uc-companies">Shopify, Amazon, Faire</div>
+          </td>
+          <td class="uc-what">Who can sell, what categories, and what payout limits</td>
+          <td class="uc-why">Fraudulent sellers create chargebacks and reputational damage — they need automated screening at scale</td>
+        </tr>
+        <tr>
+          <td>
+            <div class="uc-who">Payment processors / acquirers</div>
+            <div class="uc-companies">Stripe, Adyen, PayFac operators</div>
+          </td>
+          <td class="uc-what">Which businesses can accept card payments</td>
+          <td class="uc-why">Card network rules require merchant KYB; taking on a risky merchant creates fraud liability for the processor</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ── Observability numbers ── -->
+<section>
+  <div class="reveal">
+    <div class="section-label">What ships with it</div>
+    <h2 class="section-title">Built like a real system, not a demo</h2>
+    <p class="section-sub">The same patterns fintechs use in production — instrumented, tested, and Docker-deployable in 2 commands.</p>
+  </div>
+  <div class="obs-grid reveal">
+    <div class="obs-card">
+      <div class="obs-num">35</div>
+      <div class="obs-label">Tests passing — unit + integration, offline (no API key needed)</div>
+    </div>
+    <div class="obs-card">
+      <div class="obs-num">5</div>
+      <div class="obs-label">Deterministic risk rules — KYB, sanctions, country, credit, velocity</div>
+    </div>
+    <div class="obs-card">
+      <div class="obs-num">4</div>
+      <div class="obs-label">Ops console pages — dashboard, queue, application detail, audit trail</div>
+    </div>
+    <div class="obs-card">
+      <div class="obs-num">0</div>
+      <div class="obs-label">Silent failures — every LLM error escalates to human review, never auto-approves</div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ── Tech stack ── -->
+<section id="stack">
+  <div class="reveal">
+    <div class="section-label">Tech stack</div>
+    <h2 class="section-title">Purpose-built, not bolted on</h2>
+    <p class="section-sub">Each technology earns its place. Nothing is included for buzzword coverage.</p>
+  </div>
+  <div class="stack-grid reveal">
+    <span class="stack-badge"><span class="dot" style="background:#3b82f6"></span> Python 3.12</span>
+    <span class="stack-badge"><span class="dot" style="background:#6366f1"></span> Flask</span>
+    <span class="stack-badge"><span class="dot" style="background:#22c55e"></span> Celery</span>
+    <span class="stack-badge"><span class="dot" style="background:#ef4444"></span> Redis</span>
+    <span class="stack-badge"><span class="dot" style="background:#3b82f6"></span> PostgreSQL</span>
+    <span class="stack-badge"><span class="dot" style="background:#818cf8"></span> Claude (Anthropic)</span>
+    <span class="stack-badge"><span class="dot" style="background:#f59e0b"></span> Pydantic v2</span>
+    <span class="stack-badge"><span class="dot" style="background:#0ea5e9"></span> SQLAlchemy 2 + Alembic</span>
+    <span class="stack-badge"><span class="dot" style="background:#f97316"></span> Prometheus + Grafana</span>
+    <span class="stack-badge"><span class="dot" style="background:#8b5cf6"></span> OpenTelemetry</span>
+    <span class="stack-badge"><span class="dot" style="background:#06b6d4"></span> Docker Compose</span>
+    <span class="stack-badge"><span class="dot" style="background:#22c55e"></span> GitHub Actions CI</span>
+  </div>
+
+  <div class="decisions-grid reveal" style="margin-top:2.5rem;">
+    <div class="decision-card">
+      <div class="decision-q">Why async (Celery) instead of sync?</div>
+      <div class="decision-a">The API returns 202 instantly. LLM calls can take 2–5s — you can't make a user wait. Workers scale independently of the API tier.</div>
+    </div>
+    <div class="decision-card">
+      <div class="decision-q">Why not just trust the LLM?</div>
+      <div class="decision-a">LLMs hallucinate, time out, and can be prompt-injected. Deterministic rules hold veto power for hard signals — the LLM only gets to speak on ambiguous cases.</div>
+    </div>
+    <div class="decision-card">
+      <div class="decision-q">Why Redis for velocity checks?</div>
+      <div class="decision-a">Postgres is too slow for increment-then-expire under load. Redis atomic INCR + EXPIREAT gives microsecond-latency counters with no race conditions.</div>
+    </div>
+    <div class="decision-card">
+      <div class="decision-q">Why cache LLM responses?</div>
+      <div class="decision-a">Identical applications (duplicate filings, retries) shouldn't pay twice. A SHA-256 keyed Redis cache makes repeated assessments free and deterministic.</div>
+    </div>
+    <div class="decision-card">
+      <div class="decision-q">Why an append-only audit log?</div>
+      <div class="decision-a">Regulators require complete, immutable history. You can't update or delete audit records. The table is designed for range partitioning on <code style="font-family:var(--mono);font-size:.8em">created_at</code>.</div>
+    </div>
+    <div class="decision-card">
+      <div class="decision-q">Why Pydantic on LLM output?</div>
+      <div class="decision-a">You can't trust free-form JSON from a language model in a financial context. Pydantic validates schema, types, and value ranges — malformed output triggers fail-safe.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Quick start ── -->
+<div class="quickstart-section" id="quickstart">
+  <div class="inner">
+    <div class="reveal">
+      <div class="section-label">Quick start</div>
+      <h2 class="section-title">Running in 2 commands</h2>
+      <p class="section-sub">Docker Compose brings up the full stack — API, workers, Postgres, Redis, Grafana, Prometheus.</p>
+    </div>
+    <div class="code-block reveal">
+      <div class="code-bar">
+        <div class="code-dot" style="background:#ef4444"></div>
+        <div class="code-dot" style="background:#f59e0b"></div>
+        <div class="code-dot" style="background:#22c55e"></div>
+        <span class="code-bar-label">Terminal</span>
+      </div>
+      <div class="code-body">
+        <pre><span class="c-comment"># Clone and start</span>
+<span class="c-cmd">git clone</span> <span class="c-str">https://github.com/RithikPorandla/gate-keeper.git</span>
+<span class="c-cmd">cd</span> gate-keeper <span class="c-cmd">&amp;&amp; docker compose up --build</span>
+
+<span class="c-comment"># Seed with 12 synthetic applications</span>
+<span class="c-cmd">docker exec -it gatekeeper-api</span> python scripts/seed.py
+
+<span class="c-comment"># Open the ops console</span>
+<span class="c-url">http://localhost:8000/dashboard</span>    <span class="c-comment"># metrics dashboard</span>
+<span class="c-url">http://localhost:8000/queue</span>         <span class="c-comment"># human review queue</span>
+<span class="c-url">http://localhost:3000</span>               <span class="c-comment"># Grafana</span>
+<span class="c-url">http://localhost:9090</span>               <span class="c-comment"># Prometheus</span>
+
+<span class="c-comment"># Submit an application via API</span>
+<span class="c-cmd">curl -X POST</span> http://localhost:8000/api/applications \
+  -H <span class="c-str">"Content-Type: application/json"</span> \
+  -d <span class="c-str">'{"business_name":"Acme Corp","registration_number":"12-3456789",
+     "country":"US","industry_code":"TECH","requested_spend_limit":50000,
+     "applicant_name":"Jane Smith","applicant_email":"jane@acme.com",
+     "mock_credit_score":720}'</span></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Footer ── -->
+<footer>
+  <div class="footer-inner">
+    <a href="#" class="footer-logo">
+      <svg viewBox="0 0 24 24" fill="none" width="22" height="22">
+        <path d="M12 2L4 6v6c0 5.25 3.5 10.15 8 11.5C16.5 22.15 20 17.25 20 12V6L12 2z" fill="url(#fg)"/>
+        <defs><linearGradient id="fg" x1="4" y1="2" x2="20" y2="23.5" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#818cf8"/><stop offset="100%" stop-color="#8b5cf6"/>
+        </linearGradient></defs>
+      </svg>
+      GateKeeper
+    </a>
+    <p class="footer-desc">
+      An AI-assisted risk decisioning platform built to demonstrate how financial infrastructure
+      companies automate business onboarding at scale.
+    </p>
+    <div class="footer-links">
+      <a href="https://github.com/RithikPorandla/gate-keeper" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/RithikPorandla/gate-keeper#readme" target="_blank" rel="noopener">README</a>
+      <a href="https://github.com/RithikPorandla/gate-keeper/blob/main/docker-compose.yml" target="_blank" rel="noopener">docker-compose.yml</a>
+      <a href="https://github.com/RithikPorandla/gate-keeper/actions" target="_blank" rel="noopener">CI status</a>
+    </div>
+    <p class="footer-copy">Built by Rithik Porandla · All data is synthetic — for portfolio demonstration only</p>
+  </div>
+</footer>
+
+<script>
+  // Scroll reveal
+  const els = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+  els.forEach(el => io.observe(el));
+
+  // Smooth nav link scroll
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      const id = a.getAttribute('href').slice(1);
+      if (!id) return;
+      const target = document.getElementById(id);
+      if (target) {
+        e.preventDefault();
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+</script>
+</body>
+</html>
