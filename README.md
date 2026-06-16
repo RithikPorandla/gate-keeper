@@ -36,6 +36,22 @@ When a business applies for a corporate card, credit line, or payment account, a
 
 ---
 
+## Who uses something like this
+
+Any company that lets businesses access a financial product needs to screen applicants before granting access. GateKeeper models the decisioning layer you'd find at:
+
+| Company type | The real problem | What GateKeeper handles |
+|---|---|---|
+| **Corporate card issuers** — Brex, Ramp | Thousands of SMB applications per day; can't review each manually | KYB completeness + credit threshold + velocity → auto-approve clean apps instantly, queue the grey zone |
+| **Business neobanks** — Mercury, Relay | International applicants from high-risk jurisdictions | Country risk scoring + sanctions screening → hard block before any human time is spent |
+| **B2B BNPL providers** — Affirm, Klarna | Extending credit to new merchants at point of signup | Credit + spend-limit policy → instant decisions for obvious cases, escalate marginal ones |
+| **Marketplace onboarding** — Shopify, Amazon | Seller fraud, duplicate accounts, identity cycling | Velocity counters + EIN/email deduplication → catch repeat applicants in the same window |
+| **Payment processors** — Stripe, Adyen | Regulatory obligation to screen every merchant pre-activation | OFAC/watchlist screening → mandatory hard block with a full audit trail for compliance teams |
+
+The pattern is the same everywhere: high volume, real regulatory risk, and a compliance team that cannot scale linearly with applicant growth. The answer is always some form of automated decisioning with human review on the cases that genuinely need judgment — which is exactly what this system demonstrates.
+
+---
+
 ## Architecture
 
 ```mermaid
