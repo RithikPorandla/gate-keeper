@@ -1,0 +1,19 @@
+# Decision-policy configuration. Thresholds live here so behaviour can be tuned
+# without a deploy — and so the dashboard can show how moving them changes the
+# auto-approval rate.
+
+# Weighted blend of the rule-derived risk and the LLM risk_score (must sum to 1.0).
+weights:
+  rules: 0.5
+  llm: 0.5
+
+thresholds:
+  # combined_risk_score < auto_approve_below  -> approved
+  auto_approve_below: 25
+  # combined_risk_score > auto_decline_above  -> declined
+  auto_decline_above: 70
+
+# If the rule-derived score and the LLM score disagree by more than this, route to
+# a human regardless of where the combined score lands (human-in-the-loop on
+# disagreement).
+disagreement_delta: 40

@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Review queue — GateKeeper{% endblock %}
+
+{% block content %}
+<div class="flex-between" style="margin-bottom:2rem; align-items:flex-end;">
+  <div>
+    <h1 class="page-title">Review queue</h1>
+    <p class="page-subtitle">
+      These applications could not be auto-decided.
+      The rule engine and AI analyst flagged them for human judgment — <strong style="color:var(--text);">that's you.</strong>
+    </p>
+  </div>
+  <div class="sort-bar">
+    <span class="sort-label">Sort by</span>
+    <a href="{{ url_for('ui.queue', sort='risk') }}"
+       class="sort-btn {% if sort == 'risk' %}active{% endif %}">Highest risk first</a>
+    <a href="{{ url_for('ui.queue', sort='age') }}"
+       class="sort-btn {% if sort == 'age' %}active{% endif %}">Oldest first</a>
+  </div>
+</div>
+
+{% if not items %}
+  <div class="empty-state">
+    <div class="empty-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+    </div>
+    <div class="empty-title">Queue is clear</div>
+    <p class="empty-sub text-muted">Nothing awaiting human review. GateKeeper handled everything automatically.</p>
+  </div>
+{% else %}
+  <div class="queue-stack">
+    {% for app_row in items %}
+      {% set d = app_row.decision %}
+      {% set score = (d.combined_risk_score | round(0) | int) if d else 0 %}
+      {% if score >= 60 %}
+        {% set gauge_color = '#f43f5e' %}
+        {% set risk_label = 'High risk' %}
+      {% elif score >= 30 %}
+        {% set gauge_color = '#f59e0b' %}
+        {% set risk_label = 'Moderate risk' %}
+      {% else %}
+        {% set gauge_color = '#22c55e' %}
+        {% set risk_label = 'Low risk' %}
+      {% endif %}
+      {% set dash = (score / 100 * 106.8) | round(1) %}
+
+      {# Time in queue #}
+      {% set age_s = (now - app_row.submitted_at).total_seconds() | int %}
+      {% if age_s < 3600 %}
+        {% set age_str = (age_s // 60) | string + 'm ago' %}
+      {% elif age_s < 86400 %}
+        {% set age_str = (age_s // 3600) | string + 'h ago' %}
+      {% else %}
+        {% set age_str = (age_s // 86400) | string + 'd ago' %}
+      {% endif %}
+
+      <div class="queue-card">
+        <!-- Card header: identity + score -->
+        <div class="qc-header">
+          <div class="qc-identity">
+            <div class="qc-name">
+              <a href="{{ url_for('ui.application_detail', application_id=app_row.id) }}">
+                {{ app_row.business_name }}
+              </a>
+            </div>
+            <div class="qc-meta">
+              <span class="qc-meta-item">{{ app_row.country }}</span>
+              <span class="qc-sep">·</span>
+              <span class="qc-meta-item">{{ app_row.applicant_email }}</span>
+              <span class="qc-sep">·</span>
+              <span class="qc-meta-item qc-age">{{ age_str }}</span>
+            </div>
+          </div>
+
+          <div class="qc-score-wrap">
+            <svg viewBox="0 0 44 44" width="44" height="44">
+              <circle cx="22" cy="22" r="17" fill="none" stroke="var(--surface-3)" stroke-width="4"/>
+              <circle cx="22" cy="22" r="17" fill="none"
+                stroke="{{ gauge_color }}" stroke-width="4"
+                stroke-linecap="round"
+                stroke-dasharray="{{ dash }} 106.8"
+                transform="rotate(-90 22 22)"/>
+            </svg>
+            <div>
+              <div class="qc-score-num" style="color:{{ gauge_color }};">{{ score }}</div>
+              <div class="qc-score-lbl">{{ risk_label }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Why it's here -->
+        {% if d and (d.llm_top_concerns or d.llm_rationale) %}
+        <div class="qc-body">
+          {% if d.llm_top_concerns %}
+            <div class="qc-why-label">
+              <svg viewBox="0 0 12 12" fill="currentColor" width="10" height="10">
+                <path fill-rule="evenodd" d="M6 1a5 5 0 1 0 0 10A5 5 0 0 0 6 1zm.5 3a.5.5 0 0 0-1 0v2.5l1.354 1.353a.5.5 0 0 0 .707-.707L6.5 6.086V4z" clip-rule="evenodd"/>
+              </svg>
+              Why it's here
+            </div>
+            <div class="concern-chips" style="margin-bottom:0.75rem;">
+              {% for c in d.llm_top_concerns %}
+                <span class="concern-chip">{{ c }}</span>
+              {% endfor %}
+            </div>
+          {% endif %}
+          {% if d.llm_rationale %}
+            <div class="qc-rationale">{{ d.llm_rationale }}</div>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Review action -->
+        <div class="qc-actions">
+          <form method="post"
+                action="{{ url_for('ui.ui_review', application_id=app_row.id) }}"
+                class="review-form">
+            <input type="text" name="notes" placeholder="Add a reviewer note before deciding…" class="review-input" style="flex:1; min-width:180px;">
+            <button type="submit" name="action" value="approve" class="btn btn-approve">
+              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 6l3 3 5-5"/></svg>
+              Approve
+            </button>
+            <button type="submit" name="action" value="decline" class="btn btn-decline">
+              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l6 6M9 3l-6 6"/></svg>
+              Decline
+            </button>
+            <a href="{{ url_for('ui.application_detail', application_id=app_row.id) }}"
+               class="btn btn-ghost">Full dossier →</a>
+          </form>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <p class="text-muted fs-sm" style="margin-top:0.75rem;">
+    {{ items | length }} application{{ 's' if items | length != 1 else '' }} awaiting review.
+  </p>
+{% endif %}
+{% endblock %}

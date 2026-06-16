@@ -1,0 +1,48 @@
+# Rule-engine configuration. Thresholds live here (not in code) so behaviour can be
+# tuned without a deploy and the dashboard can show how changes move auto-approval.
+
+kyb_completeness:
+  # Fields that must be present and well-formed for the application to be complete.
+  required_fields:
+    - business_name
+    - registration_number
+    - country
+    - applicant_name
+    - applicant_email
+  severity_on_fail: high
+
+watchlist:
+  # Path is relative to the repo root; loaded once at worker start.
+  source_file: data/mock_watchlist.csv
+  severity_on_hit: critical   # a sanctions/watchlist hit is a hard block
+
+country_risk:
+  # ISO alpha-2 -> risk score (0 low .. 100 high). Anything not listed uses default.
+  default_score: 20
+  scores:
+    US: 5
+    GB: 5
+    DE: 5
+    CA: 5
+    FR: 8
+    IN: 25
+    BR: 30
+    NG: 70
+    RU: 90
+    IR: 100
+    KP: 100
+  high_risk_threshold: 60     # at/above this, the rule fails
+  severity_on_fail: high
+
+credit_threshold:
+  minimum_score: 600          # mock credit score floor
+  # A failed or missing credit check is a meaningful risk signal — high enough
+  # that it routes to human review rather than auto-approving.
+  severity_on_fail: high
+  severity_when_missing: high
+
+velocity:
+  # Same EIN or email applying repeatedly within the window is suspicious.
+  window_seconds: 3600
+  max_within_window: 3
+  severity_on_fail: high

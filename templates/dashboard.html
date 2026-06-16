@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — GateKeeper{% endblock %}
+
+{% block content %}
+{% set decided = metrics.approved + metrics.declined + metrics.needs_review %}
+{% set auto_decided = metrics.approved + metrics.declined %}
+
+<!-- Page header -->
+<div class="page-header">
+  <h1 class="page-title">Operations dashboard</h1>
+  <p class="page-subtitle">
+    GateKeeper has processed <strong style="color:var(--text);">{{ metrics.total_applications }} applications</strong>.
+    {{ auto_decided }} were decided automatically — {{ metrics.needs_review }} are waiting for you.
+  </p>
+</div>
+
+<!-- Pipeline visualization -->
+<div class="pipeline-card">
+  <div class="pipeline-label">How applications flow through GateKeeper</div>
+  <div class="pipeline-flow">
+
+    <div class="pipeline-stage">
+      <div class="ps-icon ps-blue">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M8 1L2 4v4c0 3 2.5 5.8 6 6.8C11.5 13.8 14 11 14 8V4L8 1z"/>
+        </svg>
+      </div>
+      <div class="ps-number">{{ metrics.total_applications }}</div>
+      <div class="ps-name">Submitted</div>
+      <div class="ps-desc">Businesses applied for access</div>
+    </div>
+
+    <div class="pipeline-arrow">
+      <svg viewBox="0 0 24 8" fill="none">
+        <path d="M0 4h20M16 1l4 3-4 3" stroke="var(--border-light)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <div class="pipeline-stage">
+      <div class="ps-icon ps-indigo">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <rect x="2" y="2" width="12" height="3" rx="1"/>
+          <rect x="2" y="7" width="12" height="3" rx="1"/>
+          <rect x="2" y="12" width="7" height="2" rx="1"/>
+        </svg>
+      </div>
+      <div class="ps-number">5</div>
+      <div class="ps-name">Rule checks</div>
+      <div class="ps-desc">KYB · Watchlist · Country · Credit · Velocity</div>
+    </div>
+
+    <div class="pipeline-arrow">
+      <svg viewBox="0 0 24 8" fill="none">
+        <path d="M0 4h20M16 1l4 3-4 3" stroke="var(--border-light)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <div class="pipeline-stage">
+      <div class="ps-icon ps-violet">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <circle cx="8" cy="6" r="3"/><path d="M2 14c0-3.3 2.7-5 6-5s6 1.7 6 5"/>
+        </svg>
+      </div>
+      <div class="ps-number">{{ decided }}</div>
+      <div class="ps-name">LLM analyst</div>
+      <div class="ps-desc">Claude scores risk and writes a rationale</div>
+    </div>
+
+    <div class="pipeline-arrow">
+      <svg viewBox="0 0 24 8" fill="none">
+        <path d="M0 4h20M16 1l4 3-4 3" stroke="var(--border-light)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <div class="pipeline-stage ps-outcomes">
+      <div class="ps-icon ps-green">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M13 4L6 11 3 8"/>
+        </svg>
+      </div>
+      <div class="ps-name">Decision</div>
+      <div class="ps-outcomes-grid">
+        <div class="po-item po-approved">
+          <span class="po-count">{{ metrics.approved }}</span>
+          <span class="po-lbl">Auto-approved</span>
+        </div>
+        <div class="po-item po-declined">
+          <span class="po-count">{{ metrics.declined }}</span>
+          <span class="po-lbl">Auto-declined</span>
+        </div>
+        <div class="po-item po-review">
+          <span class="po-count">{{ metrics.needs_review }}</span>
+          <span class="po-lbl">Human review</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Stat cards -->
+<div class="stat-grid" style="margin-bottom:1.5rem;">
+  <div class="stat-card">
+    <div class="stat-icon icon-blue">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <circle cx="8" cy="8" r="6"/><path d="M8 5v3l1.5 1.5"/>
+      </svg>
+    </div>
+    <div class="stat-value">{{ (metrics.auto_decision_rate * 100) | round(1) }}%</div>
+    <div class="stat-label">Auto-decision rate — no human needed</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon icon-green">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M13 4L6 11 3 8"/>
+      </svg>
+    </div>
+    <div class="stat-value text-green">{{ (metrics.approval_rate * 100) | round(1) }}%</div>
+    <div class="stat-label">Approval rate among decided</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon icon-indigo">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <path d="M14 8A6 6 0 1 0 2 8"/><path d="M14 8l-1.5-1.5M14 8l-1.5 1.5"/>
+      </svg>
+    </div>
+    <div class="stat-value">{{ (metrics.conversion * 100) | round(1) }}%</div>
+    <div class="stat-label">Conversion — approved / submitted</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon icon-amber">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <path d="M3 4h10v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4z"/><path d="M1 4h14"/>
+      </svg>
+    </div>
+    <div class="stat-value text-amber">{{ metrics.needs_review }}</div>
+    <div class="stat-label">
+      Awaiting your decision
+      {% if metrics.needs_review > 0 %}
+        — <a href="{{ url_for('ui.queue') }}" style="color:var(--amber-2); font-weight:600;">review now →</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon icon-indigo">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 1.5"/>
+      </svg>
+    </div>
+    <div class="stat-value">
+      {% if metrics.avg_review_time_seconds is not none %}{{ metrics.avg_review_time_seconds | int }}s{% else %}—{% endif %}
+    </div>
+    <div class="stat-label">Avg. human review time</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon icon-green">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <path d="M2 12V4l6-2 6 2v8"/><rect x="5" y="8" width="2" height="4"/><rect x="9" y="6" width="2" height="6"/>
+      </svg>
+    </div>
+    <div class="stat-value">{{ metrics.total_applications }}</div>
+    <div class="stat-label">Total applications processed</div>
+  </div>
+</div>
+
+<!-- Recent decisions feed -->
+{% if recent %}
+<div class="panel">
+  <div class="panel-header">
+    <h2 class="panel-title">Recent decisions</h2>
+    <span class="text-muted fs-sm">Most recent first</span>
+  </div>
+  <div class="activity-feed">
+    {% for row in recent %}
+      {% set d = row.decision %}
+      {% set outcome = d.outcome %}
+      <div class="activity-item">
+        <div class="activity-dot dot-{{ outcome }}"></div>
+        <div class="activity-body">
+          <div class="activity-top">
+            <a href="{{ url_for('ui.application_detail', application_id=row.app.id) }}"
+               class="activity-biz">{{ row.app.business_name }}</a>
+            <span class="badge badge-{{ outcome }}">
+              <span class="badge-dot"></span>
+              {{ outcome | replace('_', ' ') | title }}
+            </span>
+          </div>
+          <div class="activity-meta">
+            <span>{{ row.app.country }}</span>
+            <span>·</span>
+            <span>Risk score {{ d.combined_risk_score | round(0) | int }}</span>
+            {% if d.llm_top_concerns %}
+              <span>·</span>
+              <span>{{ d.llm_top_concerns[0] }}</span>
+            {% endif %}
+          </div>
+          {% if d.llm_rationale %}
+            <div class="activity-rationale">{{ d.llm_rationale | truncate(120, True, '…') }}</div>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- How it works -->
+<div class="panel">
+  <div class="panel-header">
+    <h2 class="panel-title">Why this architecture</h2>
+  </div>
+  <div class="flow">
+    <div class="flow-step">
+      <div class="flow-num">Rule engine first</div>
+      <div class="flow-step-title">Hard signals hold veto power</div>
+      <div class="flow-step-desc">A sanctions hit, a high-risk country, or repeated applications from the same EIN are automatic blocks. Deterministic rules never lie — the LLM is not consulted for these cases.</div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">LLM adds judgment</div>
+      <div class="flow-step-title">Context the rules can't see</div>
+      <div class="flow-step-desc">Claude reads the full application and rule results, then writes a structured risk assessment: a 0–100 score, recommended action, top concerns, and a rationale you can audit later.</div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">Human stays in the loop</div>
+      <div class="flow-step-title">Disagreement routes to you</div>
+      <div class="flow-step-desc">If rules and the LLM significantly disagree — or if the combined score falls in the grey zone — the application lands in your queue. You see the full dossier and make the call.</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

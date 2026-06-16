@@ -1,0 +1,9 @@
+Database migrations (Flask-Migrate / Alembic).
+
+Common commands (run inside the api container or a local venv):
+
+    flask --app app.main db upgrade            # apply migrations
+    flask --app app.main db migrate -m "msg"   # autogenerate a new revision
+    flask --app app.main db downgrade -1       # roll back one
+
+The initial revision (0001_initial) creates every table in app/models.

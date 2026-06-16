@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+{% block title %}{{ app_row.business_name }} — GateKeeper{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('ui.queue') }}" class="back-link">
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
+       stroke-linecap="round" stroke-linejoin="round"><path d="M10 3L5 8l5 5"/></svg>
+  Back to queue
+</a>
+
+{% set d = app_row.decision %}
+{% set score = (d.combined_risk_score | round(0) | int) if d else 0 %}
+{% if score >= 60 %}
+  {% set gauge_color = '#f43f5e' %}
+{% elif score >= 30 %}
+  {% set gauge_color = '#f59e0b' %}
+{% else %}
+  {% set gauge_color = '#22c55e' %}
+{% endif %}
+{% set dash = (score / 100 * 175.9) | round(1) %}
+
+<!-- Hero -->
+<div class="detail-hero">
+  <div>
+    <h1 class="detail-biz-name">{{ app_row.business_name }}</h1>
+    <div class="detail-meta">
+      <span class="badge badge-{{ app_row.status }}">
+        <span class="badge-dot"></span>
+        {{ app_row.status | replace('_', ' ') | title }}
+      </span>
+      <span class="detail-meta-item">Reg. <strong>{{ app_row.registration_number }}</strong></span>
+      <span class="detail-meta-item">Country <strong>{{ app_row.country }}</strong></span>
+      <span class="detail-meta-item">
+        Submitted <strong>{{ app_row.submitted_at.strftime('%b %d, %Y %H:%M') if app_row.submitted_at else '—' }}</strong>
+      </span>
+    </div>
+  </div>
+  {% if d %}
+  <div class="detail-score-box">
+    <svg class="detail-score-ring" viewBox="0 0 76 76">
+      <circle cx="38" cy="38" r="28" fill="none" stroke="var(--surface-3)" stroke-width="6"/>
+      <circle cx="38" cy="38" r="28" fill="none"
+        stroke="{{ gauge_color }}" stroke-width="6"
+        stroke-linecap="round"
+        stroke-dasharray="{{ dash }} 175.9"
+        transform="rotate(-90 38 38)"/>
+      <text x="38" y="38" text-anchor="middle" dominant-baseline="central"
+        fill="{{ gauge_color }}" font-size="16" font-weight="700"
+        font-family="Inter, -apple-system, sans-serif">{{ score }}</text>
+    </svg>
+    <div class="detail-score-lbl">Combined risk</div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Decision pipeline timeline -->
+<div class="panel" style="margin-bottom:1.25rem;">
+  <div class="panel-header">
+    <h2 class="panel-title">Decision pipeline</h2>
+    <span class="text-muted fs-sm">Each stage ran in sequence — left to right</span>
+  </div>
+  <div class="dpl-timeline">
+
+    <!-- Stage 1: KYB / Rules -->
+    {% set rules_passed = app_row.rule_results | selectattr('passed') | list | length %}
+    {% set rules_total  = app_row.rule_results | length %}
+    {% set rules_failed = app_row.rule_results | rejectattr('passed') | list %}
+    {% set critical_fail = rules_failed | selectattr('severity', 'equalto', 'critical') | list %}
+
+    <div class="dpl-stage {{ 'dpl-pass' if not rules_failed else ('dpl-block' if critical_fail else 'dpl-warn') }}">
+      <div class="dpl-stage-icon">
+        {% if not rules_failed %}
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 6l3 3 5-5"/></svg>
+        {% elif critical_fail %}
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l6 6M9 3l-6 6"/></svg>
+        {% else %}
+          <svg viewBox="0 0 12 12" fill="currentColor"><path d="M6 1a5 5 0 1 0 0 10A5 5 0 0 0 6 1zm-.5 3a.5.5 0 0 1 1 0v2.5a.5.5 0 0 1-1 0V4zm.5 5.5a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5z"/></svg>
+        {% endif %}
+      </div>
+      <div class="dpl-stage-name">Rule engine</div>
+      <div class="dpl-stage-detail">
+        {% if not rules_failed %}{{ rules_total }}/{{ rules_total }} passed
+        {% elif critical_fail %}Hard block — {{ critical_fail[0].rule_name | replace('_',' ') }}
+        {% else %}{{ rules_failed | length }} flag{{ 's' if rules_failed | length != 1 else '' }}{% endif %}
+      </div>
+    </div>
+
+    <div class="dpl-arrow">→</div>
+
+    <!-- Stage 2: LLM -->
+    <div class="dpl-stage {{ 'dpl-block' if not d else ('dpl-warn' if d.llm_recommendation == 'review' else ('dpl-pass' if d.llm_recommendation == 'approve' else 'dpl-fail')) }}">
+      <div class="dpl-stage-icon">
+        {% if not d %}
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l6 6M9 3l-6 6"/></svg>
+        {% elif d.llm_recommendation == 'approve' %}
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 6l3 3 5-5"/></svg>
+        {% elif d.llm_recommendation == 'decline' %}
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l6 6M9 3l-6 6"/></svg>
+        {% else %}
+          <svg viewBox="0 0 12 12" fill="currentColor"><path d="M6 1a5 5 0 1 0 0 10A5 5 0 0 0 6 1zm-.5 3a.5.5 0 0 1 1 0v2.5a.5.5 0 0 1-1 0V4zm.5 5.5a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5z"/></svg>
+        {% endif %}
+      </div>
+      <div class="dpl-stage-name">LLM analyst</div>
+      <div class="dpl-stage-detail">
+        {% if not d %}Not assessed
+        {% else %}Score {{ d.llm_risk_score }} · {{ d.llm_recommendation | title }}
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="dpl-arrow">→</div>
+
+    <!-- Stage 3: Policy -->
+    <div class="dpl-stage {{ 'dpl-pass' if d and d.outcome == 'approved' else ('dpl-fail' if d and d.outcome == 'declined' else 'dpl-warn') }}">
+      <div class="dpl-stage-icon">
+        {% if d and d.outcome == 'approved' %}
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 6l3 3 5-5"/></svg>
+        {% elif d and d.outcome == 'declined' %}
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l6 6M9 3l-6 6"/></svg>
+        {% else %}
+          <svg viewBox="0 0 12 12" fill="currentColor"><path d="M6 1a5 5 0 1 0 0 10A5 5 0 0 0 6 1zm-.5 3a.5.5 0 0 1 1 0v2.5a.5.5 0 0 1-1 0V4zm.5 5.5a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5z"/></svg>
+        {% endif %}
+      </div>
+      <div class="dpl-stage-name">Policy</div>
+      <div class="dpl-stage-detail">
+        {% if d %}{{ d.outcome | replace('_',' ') | title }}{% else %}Pending{% endif %}
+      </div>
+    </div>
+
+    <div class="dpl-arrow">→</div>
+
+    <!-- Stage 4: Final outcome -->
+    <div class="dpl-stage dpl-final {{ 'dpl-pass' if app_row.status == 'approved' else ('dpl-fail' if app_row.status == 'declined' else 'dpl-warn') }}">
+      <div class="dpl-stage-icon">
+        {% if app_row.status == 'approved' %}
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 6l3 3 5-5"/></svg>
+        {% elif app_row.status == 'declined' %}
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l6 6M9 3l-6 6"/></svg>
+        {% else %}
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 2v4M4 10h7"/><circle cx="7" cy="10" r="2"/></svg>
+        {% endif %}
+      </div>
+      <div class="dpl-stage-name">Final status</div>
+      <div class="dpl-stage-detail">
+        {% if app_row.status == 'needs_review' %}Awaiting your decision
+        {% else %}{{ app_row.status | replace('_',' ') | title }}{% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Detail columns -->
+<div class="two-col">
+  <!-- Application -->
+  <div class="panel">
+    <div class="panel-header"><h2 class="panel-title">Application</h2></div>
+    <div class="panel-body">
+      <table class="kv-table">
+        <tr><th>Applicant</th><td>{{ app_row.applicant_name }}</td></tr>
+        <tr><th>Email</th><td><a href="mailto:{{ app_row.applicant_email }}">{{ app_row.applicant_email }}</a></td></tr>
+        <tr><th>Industry</th><td><code class="mono">{{ app_row.industry_code }}</code></td></tr>
+        <tr><th>Spend limit</th><td><strong>${{ '%.2f' | format(app_row.requested_spend_limit) }}</strong></td></tr>
+        <tr><th>Credit score</th><td>
+          {% if app_row.mock_credit_score %}
+            <span class="{{ 'text-green fw-600' if app_row.mock_credit_score >= 600 else 'text-red fw-600' }}">{{ app_row.mock_credit_score }}</span>
+            <span class="text-muted fs-sm"> / min 600</span>
+          {% else %}<span class="text-muted">Not provided</span>{% endif %}
+        </td></tr>
+        <tr><th>App ID</th><td><code class="mono text-muted" style="font-size:.7rem;">{{ app_row.id }}</code></td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- AI assessment -->
+  {% if d %}
+  <div class="panel">
+    <div class="panel-header"><h2 class="panel-title">AI analyst assessment</h2></div>
+    <div class="panel-body">
+      <table class="kv-table" style="margin-bottom:1rem;">
+        <tr><th>Recommendation</th><td>
+          <span class="fw-600 {{ 'text-green' if d.llm_recommendation == 'approve' else ('text-red' if d.llm_recommendation == 'decline' else 'text-amber') }}">
+            {{ d.llm_recommendation | title }}
+          </span>
+        </td></tr>
+        <tr><th>AI risk score</th><td>{{ d.llm_risk_score }} <span class="text-muted">/ 100</span></td></tr>
+        <tr><th>Combined score</th><td>{{ d.combined_risk_score | round(1) }} <span class="text-muted">/ 100</span></td></tr>
+        <tr><th>Model</th><td><code class="mono">{{ d.model_name }}</code></td></tr>
+      </table>
+      {% if d.llm_top_concerns %}
+        <div style="margin-bottom:.85rem;">
+          <div class="text-muted fw-600 fs-sm" style="letter-spacing:.06em;text-transform:uppercase;margin-bottom:.4rem;">Concerns flagged</div>
+          <div class="concern-chips">{% for c in d.llm_top_concerns %}<span class="concern-chip">{{ c }}</span>{% endfor %}</div>
+        </div>
+      {% endif %}
+      {% if d.llm_rationale %}
+        <div class="text-muted fw-600 fs-sm" style="letter-spacing:.06em;text-transform:uppercase;margin-bottom:.4rem;">Analyst memo</div>
+        <div class="rationale-box">{{ d.llm_rationale }}</div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Rule results -->
+<div class="panel">
+  <div class="panel-header">
+    <h2 class="panel-title">Rule engine — detailed results</h2>
+    <span class="text-muted fs-sm">
+      {{ app_row.rule_results | selectattr('passed') | list | length }} of {{ app_row.rule_results | length }} rules passed
+    </span>
+  </div>
+  <div class="panel-body">
+    <div class="rule-grid">
+      {% for r in app_row.rule_results %}
+        <div class="rule-card">
+          <div class="rule-icon {{ 'rule-pass' if r.passed else 'rule-fail' }}">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              {% if r.passed %}<path d="M2 6l3 3 5-5"/>{% else %}<path d="M3 3l6 6M9 3l-6 6"/>{% endif %}
+            </svg>
+          </div>
+          <div class="rule-info">
+            <div class="rule-name">
+              <span class="rule-name-text">{{ r.rule_name | replace('_', ' ') }}</span>
+              <span class="sev-badge sev-{{ r.severity }}">{{ r.severity }}</span>
+            </div>
+            {% if r.detail %}
+              <div class="rule-detail mono">
+                {% if r.detail is mapping %}
+                  {% for k, v in r.detail.items() %}{{ k | replace('_',' ') }}: {{ v }}{% if not loop.last %} · {% endif %}{% endfor %}
+                {% else %}{{ r.detail }}{% endif %}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Human decision panel -->
+{% if app_row.status == 'needs_review' %}
+<div class="panel" style="border-color:rgba(99,102,241,.25);">
+  <div class="panel-header" style="background:rgba(99,102,241,.06);">
+    <h2 class="panel-title">Your decision is required</h2>
+    <span class="text-muted fs-sm">This will be logged to the audit trail with your reviewer ID</span>
+  </div>
+  <div class="panel-body">
+    <p class="text-muted fs-sm" style="margin-top:0;margin-bottom:1.1rem;">
+      GateKeeper escalated this application because the combined risk signal was ambiguous.
+      Review the pipeline above and make a determination.
+    </p>
+    <form method="post" action="{{ url_for('ui.ui_review', application_id=app_row.id) }}" class="review-form">
+      <input type="text" name="notes" placeholder="Reviewer notes — explain your reasoning (optional)…"
+             class="review-input" style="flex:1;min-width:220px;max-width:400px;">
+      <button type="submit" name="action" value="approve" class="btn btn-approve">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 6l3 3 5-5"/></svg>
+        Approve application
+      </button>
+      <button type="submit" name="action" value="decline" class="btn btn-decline">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l6 6M9 3l-6 6"/></svg>
+        Decline application
+      </button>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
